@@ -93,7 +93,7 @@ sub fill_script_variable_document {
 
 sub find_scope_variables {
     my ($self,$s) = @_;
-    return map { m{\b($s:[a-zA-Z0-9_.#]+)\b}g ? $1 : () } $self->content;
+    return map { m{let\s+($s:[a-zA-Z0-9_.#]+)}g ? $1 : () } $self->content;
 }
 
 sub find_script_variable_document {
