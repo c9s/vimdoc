@@ -1,0 +1,182 @@
+#!/usr/bin/env perl
+use warnings;
+use strict;
+package VimDoc::Sk;
+
+my $func_decl_re = '\s*fu[nction]{0,6}[!]?\s+';
+my $func_name_re = '[a-zA-Z_0-9#:.]+';
+
+sub new {
+    my $class = shift;
+    my $self = bless {} , $class;
+
+    my %args = @_;
+    if ( $args{file} ) {
+        open my $fh , "<", $args{file};
+        my @content = <$fh>;
+        chomp @content;
+        $self->{content} = \@content;
+        close $fh;
+    }
+    elsif( $args{content} ) {
+        $self->{content} = [ split /\n/,$self->{content} ];
+    }
+    return $self;
+}
+
+sub _log {
+    print STDERR @_ , "\n";
+}
+
+sub content_ref { $_[0]->{content} }
+sub content { @{ $_[0]->{content} } }
+
+sub find_functions {
+    my $self = shift;
+    return map { chomp ; /^$func_decl_re($func_name_re)/ ? $1 : () } $self->content;
+}
+
+sub find_function_decl_line {
+    my $self = shift;
+    my $fname = shift;
+    my $i = 0;
+    for ( $self->content ) {
+        return $i if m/^$func_decl_re$fname/ ;
+        $i++;
+    }
+    return undef;
+}
+
+sub find_global_variable_document {
+    my $self = shift;
+    for ( $self->content ) {
+        return 1 if /^"\s+Global Variables:/;
+    }
+    return 0;
+}
+
+sub find_first_non_comment_line {
+    my $self = shift;
+    my $line = 0;
+    for ( $self->content ) {
+        return $line unless /^"/;
+        $line++;
+    }
+    return $line;
+}
+
+sub fill_global_variable_document {
+    my ( $self, $g ) = @_;
+    my $template = qq|
+" Global Variables:
+" |;
+    for ( @$g ) {
+        $template .= qq|\n"     $_ : |;
+    }
+    $template .= qq|\n |;
+    my $start = $self->find_first_non_comment_line;
+    splice( @{$self->{content}},$start,0,split("\n",$template));
+}
+
+sub fill_script_variable_document {
+    my ( $self, $s ) = @_;
+    my $template = qq|
+" Script Variables:
+" |;
+    for ( @$s ) {
+        $template .= qq|\n"     $_ : |;
+    }
+    $template .= qq|\n |;
+    my $start = $self->find_first_non_comment_line;
+    splice( @{$self->{content}},$start,0,split("\n",$template));
+}
+
+sub find_scope_variables {
+    my ($self,$s) = @_;
+    return map { m{\b($s:[a-zA-Z0-9_.#]+)\b}g ? $1 : () } $self->content;
+}
+
+sub find_script_variable_document {
+    my $self = shift;
+    for ( $self->content ) {
+        return 1 if /^"\s+Script Variables:/;
+    }
+    return 0;
+}
+
+sub find_function_document {
+    my ($self,$fname)=@_;
+    for ( $self->content ) {
+        if( m/^"\s+$fname\s*:/ ) {
+            _log "Found function document: $fname";
+            return 1;
+        }
+    }
+    return 0;
+}
+
+sub parse_function_arguments {
+    my ($self,$line)=@_;
+    $line =~ m{^\s*$func_decl_re$func_name_re\s*\((.*?)\)};
+    my $args = $1;
+    return split /,/,$args if $args;
+    return ();
+}
+
+sub prepend_doc {
+    my ( $self, $function , $lnum ) = @_;
+    my $line = $self->content->[ $lnum ];
+    my @args = $self->parse_function_arguments( $line );
+    my $template = qq|" $function : |;
+
+    for ( @args ) {
+        $template .= qq|\n"   \@$_: |;
+    }
+    $template .= qq|\n |;
+    splice( @{$self->{content}} ,$lnum,0,split("\n",$template));
+}
+
+sub out {
+    my $self = shift;
+    return join "\n",$self->content;
+}
+
+package main;
+
+my $file = shift;
+my $opt = shift;
+
+my $sk = VimDoc::Sk->new( file => $file );
+
+
+my $has_global = $sk->find_global_variable_document;
+unless( $has_global ) {
+    my @g = $sk->find_scope_variables( 'g' );
+    $sk->fill_global_variable_document( \@g );
+}
+
+my $has_script = $sk->find_script_variable_document;
+unless( $has_script ) {
+    my @s = $sk->find_scope_variables( 's' );
+    $sk->fill_script_variable_document( \@s );
+}
+
+my @functions = $sk->find_functions();
+
+for my $f ( @functions ) {
+    my $found = $sk->find_function_document( $f );
+    unless( $found ) {
+        my $lnum = $sk->find_function_decl_line( $f );
+        $sk->prepend_doc( $f , $lnum );
+    }
+}
+
+if ( $opt and $opt eq '-p' ) {
+    open FH , ">" , $file;
+    print FH $sk->out;
+    close FH;
+}
+else {
+    print $sk->out;
+}
+
