@@ -1,0 +1,35 @@
+
+
+VimDoc::Sk
+
+    auto fill basic vim document for your viml file.
+
+    vimdoc-sk converts this:
+
+        " return paths from perl @INC
+        fun! libperl#get_perl_lib_paths()
+            return split( system('perl -e ''print join "\n",@INC''') , "\n" )  
+        endf
+
+    into:
+
+        " libperl#get_perl_lib_paths :
+        "   @return[List]:                                                                                                                          
+        "       return paths from perl @INC 
+        "
+        fun! libperl#get_perl_lib_paths()
+            return split( system('perl -e ''print join "\n",@INC''') , "\n" )  
+        endf
+
+
+INSTALLATION
+
+    $ sudo make install
+
+USAGE
+
+    $ vimdoc-sk path/your_script_file.vim    # preview changes
+
+    $ vimdoc-sk path/your_script_file.vim  -p  # apply documents
+
+
