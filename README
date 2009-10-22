@@ -22,6 +22,20 @@ VimDoc::Sk
         endf
 
 
+STANDARD VIMDOC FORMAT
+
+
+    "=NAME libperl.vim
+    "
+    "=AUTHOR Cornelius (c9s)  (林佑安)
+    "
+    "=EMAIL cornelius.howl@gmail.com
+    "
+    "=VERSION 0.1
+    "
+    "=LICEENSE GPL
+    "
+
 INSTALLATION
 
     $ sudo make install

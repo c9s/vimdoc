@@ -16,6 +16,7 @@ sub new {
         my @content = <$fh>;
         chomp @content;
         $self->{content} = \@content;
+        $self->{orig} = join "\n",@content;
         close $fh;
     }
     elsif( $args{content} ) {
@@ -28,6 +29,7 @@ sub _log {
     print STDERR @_ , "\n";
 }
 
+sub orig { $_[0]->{orig} }
 sub content_ref { $_[0]->{content} }
 sub content { @{ $_[0]->{content} } }
 
@@ -115,6 +117,26 @@ sub find_function_document {
     return 0;
 }
 
+sub script_name {
+    my ( $name ) = $_[0]->orig =~ /^"=NAME (.*)$/;
+    return $name;
+}
+
+sub script_version {
+    my ( $version ) = $_[0]->orig =~ /^"=VERSION (.*)$/;
+    return $version;
+}
+
+sub script_author {
+    my ( $author ) = $_[0]->orig =~ /^"=AUTHOR (.*)$/;
+    return $author;
+}
+
+sub script_license {
+    my ( $ret ) = $_[0]->orig =~ /^"=LICENSE (.*)$/;
+    return $ret;
+}
+
 sub parse_function_arguments {
     my ($self,$line)=@_;
     $line =~ m{^\s*$func_decl_re$func_name_re\s*\((.*?)\)};
@@ -147,7 +169,6 @@ my $file = shift;
 my $opt = shift;
 
 my $sk = VimDoc::Sk->new( file => $file );
-
 
 my $has_global = $sk->find_global_variable_document;
 unless( $has_global ) {
