@@ -1,8 +1,9 @@
 
-
 VimDoc::Sk
 
-    auto fill basic vim document for your viml file.
+    auto fill basic vim document for your viml file. vimdoc parse functions ,
+    global variables , script variables for you and insert the documents
+    automatically.
 
     vimdoc-sk converts this:
 
@@ -20,6 +21,28 @@ VimDoc::Sk
         fun! libperl#get_perl_lib_paths()
             return split( system('perl -e ''print join "\n",@INC''') , "\n" )  
         endf
+
+    the function name and arguments will be parsed and add to document.
+
+
+
+    global and script variables will also be listed:
+
+        " Script Variables:                                                                                                                          
+        "     s:cpan_cache :
+        "     s:something :
+        "     s:foobar :
+
+
+        " Global Variables:
+        " 
+        "     g:cpan_install_command : 
+        "     g:cpan_search_command :
+
+    vimdoc add those things for you.
+    so that you can just fill descriptions without redundant works.
+
+
 
 
 STANDARD VIMDOC FORMAT
